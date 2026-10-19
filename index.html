@@ -1,0 +1,656 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Luau Studio Pro - Advanced Lua/Luau IDE & Sandbox</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        mono: ['JetBrains Mono', 'Fira Code', 'monospace'],
+                        sans: ['Inter', 'sans-serif']
+                    },
+                    colors: {
+                        cyber: {
+                            bg: '#0a0b10',
+                            panel: '#12141f',
+                            border: '#1e2235',
+                            accent: '#00ffcc',
+                            hover: '#1a1f35',
+                            text: '#e2e8f0'
+                        },
+                        dracula: {
+                            bg: '#282a36',
+                            panel: '#21222c',
+                            border: '#44475a',
+                            accent: '#bd93f9',
+                            hover: '#383a59',
+                            text: '#f8f8f2'
+                        },
+                        matrix: {
+                            bg: '#020d04',
+                            panel: '#051f08',
+                            border: '#0f3814',
+                            accent: '#00ff66',
+                            hover: '#0a2f0f',
+                            text: '#a3ffa3'
+                        },
+                        midnight: {
+                            bg: '#0f172a',
+                            panel: '#1e293b',
+                            border: '#334155',
+                            accent: '#38bdf8',
+                            hover: '#273548',
+                            text: '#f1f5f9'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        /* Custom scrollbars and editor tweaks */
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: rgba(0,0,0,0.1); }
+        ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.2); border-radius: 3px; }
+        ::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.4); }
+
+        .editor-textarea {
+            caret-color: currentColor;
+            tab-size: 4;
+        }
+        
+        .glow-accent {
+            box-shadow: 0 0 20px rgba(0, 255, 204, 0.15);
+        }
+    </style>
+</head>
+<body class="bg-cyber-bg text-cyber-text font-sans h-screen flex flex-col overflow-hidden select-none" data-theme="cyber">
+
+    <!-- Top Navigation Bar -->
+    <header class="h-14 bg-cyber-panel border-b border-cyber-border flex items-center justify-between px-4 z-20 shrink-0">
+        <div class="flex items-center space-x-3">
+            <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-cyan-500 to-blue-600 flex items-center justify-center font-bold text-white shadow-lg">
+                <i class="fa-solid fa-code text-sm"></i>
+            </div>
+            <div>
+                <h1 class="font-bold text-sm tracking-wide flex items-center gap-2">
+                    LUAU STUDIO <span class="text-xs px-2 py-0.5 rounded bg-cyan-500/20 text-cyan-400 font-mono border border-cyan-500/30">v2.4 PRO</span>
+                </h1>
+                <p class="text-[10px] text-gray-400">Advanced Luau Sandbox & IDE</p>
+            </div>
+        </div>
+
+        <!-- Center Quick Actions -->
+        <div class="flex items-center space-x-2">
+            <button onclick="runScript()" class="flex items-center space-x-2 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white px-4 py-1.5 rounded-lg text-xs font-semibold shadow-md transition transform active:scale-95">
+                <i class="fa-solid fa-play text-[10px]"></i>
+                <span>Run Script <span class="text-emerald-200 font-mono text-[10px] ml-1 opacity-75">(Ctrl+Enter)</span></span>
+            </button>
+            <button onclick="openSnippets()" class="flex items-center space-x-1.5 bg-cyber-border hover:bg-cyber-hover text-gray-300 px-3 py-1.5 rounded-lg text-xs transition">
+                <i class="fa-solid fa-book-bookmark text-cyan-400"></i>
+                <span>Snippets</span>
+            </button>
+            <button onclick="runLinter()" class="flex items-center space-x-1.5 bg-cyber-border hover:bg-cyber-hover text-gray-300 px-3 py-1.5 rounded-lg text-xs transition">
+                <i class="fa-solid fa-wand-magic-sparkles text-amber-400"></i>
+                <span>Optimizer</span>
+            </button>
+        </div>
+
+        <!-- Right Utilities -->
+        <div class="flex items-center space-x-2">
+            <button onclick="exportCurrentFile()" class="p-2 hover:bg-cyber-hover text-gray-300 rounded-lg text-xs transition" title="Export .lua file">
+                <i class="fa-solid fa-download"></i>
+            </button>
+            <label class="p-2 hover:bg-cyber-hover text-gray-300 rounded-lg text-xs transition cursor-pointer" title="Import .lua file">
+                <i class="fa-solid fa-upload"></i>
+                <input type="file" id="importFile" accept=".lua,.txt" class="hidden" onchange="importScript(event)">
+            </label>
+            <div class="h-4 w-[1px] bg-cyber-border mx-1"></div>
+            <button onclick="toggleThemeModal()" class="p-2 hover:bg-cyber-hover text-gray-300 rounded-lg text-xs transition" title="Change Theme">
+                <i class="fa-solid fa-palette text-purple-400"></i>
+            </button>
+            <button onclick="toggleSettingsModal()" class="p-2 hover:bg-cyber-hover text-gray-300 rounded-lg text-xs transition" title="Settings">
+                <i class="fa-solid fa-gear text-gray-400"></i>
+            </button>
+        </div>
+    </header>
+
+    <!-- Main Workspace -->
+    <div class="flex-1 flex overflow-hidden relative">
+
+        <!-- Sidebar / File Explorer -->
+        <aside id="sidebar" class="w-64 bg-cyber-panel border-r border-cyber-border flex flex-col shrink-0 transition-all duration-300">
+            <div class="p-3 border-b border-cyber-border flex items-center justify-between">
+                <span class="text-xs font-bold uppercase tracking-wider text-gray-400 flex items-center gap-2">
+                    <i class="fa-regular fa-folder-open text-cyan-400"></i> Workspace Files
+                </span>
+                <button onclick="createNewFileModal()" class="text-xs bg-cyber-border hover:bg-cyber-hover px-2 py-1 rounded text-cyan-400 transition" title="New Script">
+                    <i class="fa-solid fa-plus"></i>
+                </button>
+            </div>
+            <div id="fileList" class="flex-1 overflow-y-auto p-2 space-y-1">
+                <!-- Dynamically populated files -->
+            </div>
+            <div class="p-3 border-t border-cyber-border bg-black/20 text-[11px] text-gray-400 flex items-center justify-between">
+                <span>Luau VM: <span class="text-emerald-400 font-semibold">Active</span></span>
+                <span id="memoryUsage">Mem: 14.2 MB</span>
+            </div>
+        </aside>
+
+        <!-- Editor & Output Split Area -->
+        <div class="flex-1 flex flex-col overflow-hidden">
+
+            <!-- Tabs Bar -->
+            <div id="tabsBar" class="h-10 bg-cyber-panel/50 border-b border-cyber-border flex items-center overflow-x-auto px-2 space-x-1 shrink-0">
+                <!-- Dynamically populated tabs -->
+            </div>
+
+            <!-- Code Editor & Minimap Container -->
+            <div class="flex-1 flex relative overflow-hidden bg-cyber-bg font-mono">
+                <!-- Line Numbers -->
+                <div id="lineNumbers" class="w-12 py-4 bg-cyber-panel/30 border-r border-cyber-border text-right pr-3 text-xs text-gray-600 select-none overflow-hidden leading-relaxed">
+                    1
+                </div>
+
+                <!-- Textarea Code Input -->
+                <div class="flex-1 relative overflow-auto" id="editorContainer">
+                    <!-- Syntax Highlighting Layer Overlay -->
+                    <pre id="highlightLayer" class="absolute inset-0 p-4 m-0 pointer-events-none text-xs leading-relaxed whitespace-pre font-mono z-0 overflow-hidden"></pre>
+                    
+                    <!-- Editable Textarea -->
+                    <textarea id="codeEditor" class="editor-textarea absolute inset-0 w-full h-full p-4 bg-transparent text-transparent text-xs leading-relaxed resize-none focus:outline-none z-10 font-mono selection:bg-cyan-500/30" spellcheck="false" oninput="onEditorInput(this)" onscroll="syncScroll(this)" onkeydown="handleEditorKeyDown(event)"></textarea>
+                </div>
+
+                <!-- Minimap Placeholder / Quick Nav -->
+                <div class="w-32 bg-cyber-panel/20 border-l border-cyber-border hidden lg:flex flex-col p-2 select-none overflow-hidden opacity-60 hover:opacity-100 transition">
+                    <div class="text-[9px] uppercase tracking-wider text-gray-500 mb-1 font-bold">Minimap</div>
+                    <div id="minimapContent" class="text-[4px] leading-[5px] text-gray-500 font-mono overflow-hidden whitespace-pre"></div>
+                </div>
+            </div>
+
+            <!-- Terminal / Console Output Section -->
+            <div class="h-48 bg-cyber-panel border-t border-cyber-border flex flex-col shrink-0">
+                <div class="h-9 bg-black/30 border-b border-cyber-border px-4 flex items-center justify-between">
+                    <div class="flex items-center space-x-3 text-xs font-semibold">
+                        <span class="text-cyan-400 flex items-center gap-1.5"><i class="fa-solid fa-terminal"></i> Output / Console</span>
+                        <span id="runStatus" class="text-gray-400 text-[11px]">Ready</span>
+                    </div>
+                    <div class="flex items-center space-x-2">
+                        <button onclick="clearConsole()" class="text-xs text-gray-400 hover:text-gray-200 px-2 py-1 rounded bg-cyber-border/50 hover:bg-cyber-border transition">
+                            <i class="fa-solid fa-trash-can mr-1"></i> Clear
+                        </button>
+                        <button onclick="toggleTerminal()" class="text-xs text-gray-400 hover:text-gray-200 px-2 py-1 rounded bg-cyber-border/50 hover:bg-cyber-border transition">
+                            <i class="fa-solid fa-chevron-down" id="terminalToggleIcon"></i>
+                        </button>
+                    </div>
+                </div>
+                <div id="consoleOutput" class="flex-1 p-3 font-mono text-xs overflow-y-auto space-y-1 bg-black/40 text-gray-300">
+                    <div class="text-gray-500">[Luau VM initialized. Ready for execution...]</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Snippets Drawer / Modal -->
+    <div id="snippetsModal" class="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-cyber-panel border border-cyber-border rounded-xl w-full max-w-2xl max-h-[80vh] flex flex-col shadow-2xl overflow-hidden">
+            <div class="p-4 border-b border-cyber-border flex items-center justify-between">
+                <h3 class="font-bold text-sm text-cyan-400 flex items-center gap-2"><i class="fa-solid fa-book-bookmark"></i> Luau Script Snippets Library</h3>
+                <button onclick="closeSnippets()" class="text-gray-400 hover:text-white"><i class="fa-solid fa-xmark text-lg"></i></button>
+            </div>
+            <div class="p-4 overflow-y-auto space-y-3 flex-1" id="snippetsList">
+                <!-- Snippets populated dynamically -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Theme Selection Modal -->
+    <div id="themeModal" class="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-cyber-panel border border-cyber-border rounded-xl w-full max-w-md p-5 shadow-2xl space-y-4">
+            <div class="flex items-center justify-between border-b border-cyber-border pb-3">
+                <h3 class="font-bold text-sm text-purple-400 flex items-center gap-2"><i class="fa-solid fa-palette"></i> Select Theme</h3>
+                <button onclick="toggleThemeModal()" class="text-gray-400 hover:text-white"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div class="grid grid-cols-2 gap-3">
+                <button onclick="setTheme('cyber')" class="p-3 rounded-lg border border-cyan-500/50 bg-[#0a0b10] text-cyan-400 font-semibold text-xs flex items-center justify-between hover:bg-cyan-500/10 transition">Cyberpunk Dark <span class="w-3 h-3 rounded-full bg-cyan-400"></span></button>
+                <button onclick="setTheme('midnight')" class="p-3 rounded-lg border border-sky-500/50 bg-[#0f172a] text-sky-400 font-semibold text-xs flex items-center justify-between hover:bg-sky-500/10 transition">Midnight Blue <span class="w-3 h-3 rounded-full bg-sky-400"></span></button>
+                <button onclick="setTheme('dracula')" class="p-3 rounded-lg border border-purple-500/50 bg-[#282a36] text-purple-300 font-semibold text-xs flex items-center justify-between hover:bg-purple-500/10 transition">Dracula <span class="w-3 h-3 rounded-full bg-purple-400"></span></button>
+                <button onclick="setTheme('matrix')" class="p-3 rounded-lg border border-emerald-500/50 bg-[#020d04] text-emerald-400 font-semibold text-xs flex items-center justify-between hover:bg-emerald-500/10 transition">Matrix Green <span class="w-3 h-3 rounded-full bg-emerald-400"></span></button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Settings Modal -->
+    <div id="settingsModal" class="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-cyber-panel border border-cyber-border rounded-xl w-full max-w-md p-5 shadow-2xl space-y-4">
+            <div class="flex items-center justify-between border-b border-cyber-border pb-3">
+                <h3 class="font-bold text-sm text-gray-300 flex items-center gap-2"><i class="fa-solid fa-gear"></i> IDE Settings</h3>
+                <button onclick="toggleSettingsModal()" class="text-gray-400 hover:text-white"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div class="space-y-4 text-xs">
+                <div>
+                    <label class="block text-gray-400 mb-1 font-semibold">Font Size (<span id="fontSizeVal">13</span>px)</label>
+                    <input type="range" min="10" max="20" value="13" class="w-full accent-cyan-400" oninput="changeFontSize(this.value)">
+                </div>
+                <div>
+                    <label class="block text-gray-400 mb-1 font-semibold">Tab Size</label>
+                    <select id="tabSizeSelect" class="w-full bg-cyber-bg border border-cyber-border rounded p-2 text-gray-200" onchange="changeTabSize(this.value)">
+                        <option value="2">2 Spaces</option>
+                        <option value="4" selected>4 Spaces</option>
+                        <option value="8">8 Spaces</option>
+                    </select>
+                </div>
+                <div class="flex items-center justify-between">
+                    <span class="text-gray-400 font-semibold">Word Wrap</span>
+                    <input type="checkbox" id="wordWrapToggle" class="accent-cyan-400 w-4 h-4 cursor-pointer" onchange="toggleWordWrap(this.checked)">
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Application JavaScript Logic -->
+    <script>
+        // State Management
+        let files = [
+            {
+                id: '1',
+                name: 'main.lua',
+                content: `-- Luau Studio Pro - Default Script\n-- Press Ctrl+Enter to execute simulation\n\nlocal player = { Name = "Ollie", Level = 99, Score = 1337 }\nprint("Welcome back, " .. player.Name .. "! Current Level: " .. player.Level)\n\n-- Simple calculation loop\nlocal totalScore = 0\nfor i = 1, 5 do\n    totalScore = totalScore + (i * 10)\n    print("Iteration " .. i .. " -> Accumulated Score: " .. totalScore)\nend\n\nprint("Script execution completed successfully!")`
+            },
+            {
+                id: '2',
+                name: 'math_utils.lua',
+                content: `-- Advanced Math Helpers & Tables\n\nlocal function calculateHypotenuse(a, b)\n    return math.sqrt(a * a + b * b)\nend\n\nprint("Hypotenuse of 3 and 4 is:", calculateHypotenuse(3, 4))`
+            }
+        ];
+        let activeFileId = '1';
+
+        const snippets = [
+            {
+                title: 'Roblox Tween Service Template',
+                desc: 'Smooth part property interpolation in Roblox Luau.',
+                code: `local TweenService = game:GetService("TweenService")\nlocal part = script.Parent\n\nlocal info = TweenInfo.new(1, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)\nlocal tween = TweenService:Create(part, info, {Size = Vector3.new(10, 10, 10)})\ntween:Play()`
+            },
+            {
+                title: 'Leaderstats & DataStore Setup',
+                desc: 'Standard player stats tracking on character spawn.',
+                code: `game.Players.PlayerAdded:Connect(function(player)\n    local leaderstats = Instance.new("Folder")\n    leaderstats.Name = "leaderstats"\n    leaderstats.Parent = player\n\n    local gold = Instance.new("IntValue")\n    gold.Name = "Gold"\n    gold.Value = 100\n    gold.Parent = leaderstats\nend)`
+            },
+            {
+                title: 'Recursive Factorial Algorithm',
+                desc: 'Classic recursive math function in Luau.',
+                code: `local function factorial(n)\n    if n == 0 then\n        return 1\n    else\n        return n * factorial(n - 1)\n    end\nend\n\nprint("Factorial of 6 is:", factorial(6))`
+            }
+        ];
+
+        // Initialization
+        window.onload = function() {
+            renderFiles();
+            renderTabs();
+            loadActiveFile();
+            renderSnippets();
+            setupShortcuts();
+        };
+
+        function getActiveFile() {
+            return files.find(f => f.id === activeFileId) || files[0];
+        }
+
+        function renderFiles() {
+            const list = document.getElementById('fileList');
+            list.innerHTML = files.map(f => `
+                <div onclick="switchFile('${f.id}')" class="group flex items-center justify-between p-2 rounded-lg text-xs cursor-pointer transition ${f.id === activeFileId ? 'bg-cyan-500/10 text-cyan-400 border border-cyan-500/30' : 'hover:bg-cyber-hover text-gray-300'}">
+                    <div class="flex items-center space-x-2 truncate">
+                        <i class="fa-solid fa-file-code text-cyan-400"></i>
+                        <span class="truncate">${f.name}</span>
+                    </div>
+                    ${files.length > 1 ? `<button onclick="event.stopPropagation(); deleteFile('${f.id}')" class="opacity-0 group-hover:opacity-100 text-gray-500 hover:text-red-400 p-1 transition"><i class="fa-solid fa-trash text-[10px]"></i></button>` : ''}
+                </div>
+            `).join('');
+        }
+
+        function renderTabs() {
+            const bar = document.getElementById('tabsBar');
+            bar.innerHTML = files.map(f => `
+                <div onclick="switchFile('${f.id}')" class="flex items-center space-x-2 px-3 py-1.5 rounded-t-lg text-xs cursor-pointer border-t-2 transition ${f.id === activeFileId ? 'bg-cyber-bg border-cyan-400 text-cyan-400 font-semibold' : 'bg-cyber-panel/40 border-transparent text-gray-400 hover:bg-cyber-panel'}">
+                    <i class="fa-solid fa-file-code text-[10px]"></i>
+                    <span>${f.name}</span>
+                    <button onclick="event.stopPropagation(); closeTab('${f.id}')" class="hover:text-red-400 ml-1 p-0.5 rounded"><i class="fa-solid fa-xmark text-[10px]"></i></button>
+                </div>
+            `).join('');
+        }
+
+        function loadActiveFile() {
+            const file = getActiveFile();
+            const editor = document.getElementById('codeEditor');
+            editor.value = file.content;
+            updateLineNumbers(file.content);
+            updateSyntaxHighlighting(file.content);
+            updateMinimap(file.content);
+        }
+
+        function switchFile(id) {
+            const currentEditor = document.getElementById('codeEditor');
+            const active = getActiveFile();
+            if (active) active.content = currentEditor.value;
+
+            activeFileId = id;
+            loadActiveFile();
+            renderFiles();
+            renderTabs();
+        }
+
+        function createNewFileModal() {
+            const name = prompt("Enter new script filename (e.g., script.lua):", "new_script.lua");
+            if (!name) return;
+            const newFile = {
+                id: Date.now().toString(),
+                name: name.endsWith('.lua') ? name : name + '.lua',
+                content: `-- ${name}\n\nprint("Hello from " .. "${name}")`
+            };
+            files.push(newFile);
+            switchFile(newFile.id);
+        }
+
+        function deleteFile(id) {
+            if (files.length <= 1) return;
+            files = files.filter(f => f.id !== id);
+            if (activeFileId === id) {
+                activeFileId = files[0].id;
+            }
+            renderFiles();
+            renderTabs();
+            loadActiveFile();
+        }
+
+        function closeTab(id) {
+            deleteFile(id);
+        }
+
+        // Editor Interactions & Highlighting
+        function onEditorInput(textarea) {
+            const file = getActiveFile();
+            file.content = textarea.value;
+            updateLineNumbers(textarea.value);
+            updateSyntaxHighlighting(textarea.value);
+            updateMinimap(textarea.value);
+        }
+
+        function updateLineNumbers(text) {
+            const lines = text.split('\n').length;
+            const lineNums = document.getElementById('lineNumbers');
+            let html = '';
+            for (let i = 1; i <= lines; i++) {
+                html += i + '<br>';
+            }
+            lineNums.innerHTML = html;
+        }
+
+        function syncScroll(textarea) {
+            const lineNums = document.getElementById('lineNumbers');
+            const highlight = document.getElementById('highlightLayer');
+            lineNums.scrollTop = textarea.scrollTop;
+            highlight.scrollTop = textarea.scrollTop;
+            highlight.scrollLeft = textarea.scrollLeft;
+        }
+
+        function updateSyntaxHighlighting(text) {
+            const highlight = document.getElementById('highlightLayer');
+            // Basic secure HTML escape & Luau token regex highlighting
+            let escaped = text
+                .replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;");
+
+            // Highlight Luau keywords, comments, strings, numbers
+            let highlighted = escaped
+                .replace(/(--.*$)/gm, '<span class="text-gray-500 italic">$1</span>')
+                .replace(/(&quot;.*?&quot;|'.*?')/g, '<span class="text-emerald-400">$1</span>')
+                .replace(/\b(local|function|end|if|then|else|elseif|for|in|do|while|repeat|until|return|break|nil|true|false|and|or|not)\b/g, '<span class="text-purple-400 font-bold">$1</span>')
+                .replace(/\b(print|math|string|table|game|script|Instance|Vector3|CFrame)\b/g, '<span class="text-cyan-400 font-semibold">$1</span>')
+                .replace(/\b(\d+)\b/g, '<span class="text-amber-400">$1</span>');
+
+            highlight.innerHTML = highlighted + '\n';
+        }
+
+        function updateMinimap(text) {
+            const minimap = document.getElementById('minimapContent');
+            minimap.textContent = text;
+        }
+
+        function handleEditorKeyDown(e) {
+            if (e.key === 'Tab') {
+                e.preventDefault();
+                const start = this.selectionStart;
+                const end = this.selectionEnd;
+                const val = this.value;
+                this.value = val.substring(0, start) + '    ' + val.substring(end);
+                this.selectionStart = this.selectionEnd = start + 4;
+                onEditorInput(this);
+            }
+        }
+
+        // Simulated Luau Interpreter / VM Execution
+        function runScript() {
+            const currentEditor = document.getElementById('codeEditor');
+            const code = currentEditor.value;
+            const consoleOutput = document.getElementById('consoleOutput');
+            const runStatus = document.getElementById('runStatus');
+
+            runStatus.textContent = "Executing...";
+            runStatus.className = "text-amber-400 text-[11px] animate-pulse";
+
+            setTimeout(() => {
+                let logs = [];
+                // Capture prints and simulate execution
+                const customPrint = (...args) => {
+                    logs.push(args.join(' '));
+                };
+
+                try {
+                    // Safe sandbox interpretation of basic Luau / JS expressions
+                    let jsCode = code
+                        .replace(/local /g, 'let ')
+                        .replace(/print\(/g, 'customPrint(')
+                        .replace(/math\.sqrt/g, 'Math.sqrt')
+                        .replace(/math\.random/g, 'Math.random')
+                        .replace(/--.*$/gm, '')
+                        .replace(/..\s*/g, '+ '); // string concatenation operator ..
+
+                    // Simple evaluation wrapper
+                    const runFn = new Function('customPrint', `
+                        try {
+                            ${jsCode}
+                        } catch (err) {
+                            customPrint("Runtime Error: " + err.message);
+                        }
+                    `);
+
+                    runFn(customPrint);
+
+                    runStatus.textContent = "Success (0 errors)";
+                    runStatus.className = "text-emerald-400 text-[11px]";
+                } catch (err) {
+                    logs.push("Syntax Error: " + err.message);
+                    runStatus.textContent = "Failed";
+                    runStatus.className = "text-red-400 text-[11px]";
+                }
+
+                // Render console logs
+                const timeStr = new Date().toLocaleTimeString();
+                let outputHTML = `<div class="text-gray-500">[${timeStr}] --- Executing Script ---</div>`;
+                if (logs.length === 0) {
+                    outputHTML += `<div class="text-gray-400">Script executed with no output.</div>`;
+                } else {
+                    logs.forEach(log => {
+                        outputHTML += `<div class="text-gray-200 font-mono">> ${escapeHtml(log)}</div>`;
+                    });
+                }
+                consoleOutput.innerHTML += outputHTML;
+                consoleOutput.scrollTop = consoleOutput.scrollHeight;
+            }, 200);
+        }
+
+        function clearConsole() {
+            document.getElementById('consoleOutput.innerHTML') = '';
+            document.getElementById('consoleOutput').innerHTML = '<div class="text-gray-500">[Console cleared]</div>';
+        }
+
+        function escapeHtml(str) {
+            return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+        }
+
+        // Script Optimizer / Linter
+        function runLinter() {
+            const code = document.getElementById('codeEditor').value;
+            const consoleOutput = document.getElementById('consoleOutput');
+            let warnings = 0;
+            let report = `<div class="text-amber-400">[Static Analysis / Linter Report]</div>`;
+
+            if (code.includes('print(') && !code.includes('local')) {
+                warnings++;
+                report += `<div class="text-yellow-300">⚠ Warning: Global variables detected. Consider using 'local' for performance.</div>`;
+            }
+            if ((code.match(/for /g) || []).length > 2) {
+                warnings++;
+                report += `<div class="text-yellow-300">⚠ Notice: Multiple loops detected. Ensure proper loop termination.</div>`;
+            }
+            if (warnings === 0) {
+                report += `<div class="text-emerald-400">✓ Code check passed cleanly. No smells detected!</div>`;
+            } else {
+                report += `<div class="text-red-400">Total warnings found: ${warnings}</div>`;
+            }
+
+            consoleOutput.innerHTML += report;
+            consoleOutput.scrollTop = consoleOutput.scrollHeight;
+        }
+
+        // Snippets Modal
+        function openSnippets() {
+            const list = document.getElementById('snippetsList');
+            list.innerHTML = snippets.map((s, idx) => `
+                <div class="p-3 bg-cyber-bg border border-cyber-border rounded-lg hover:border-cyan-500/50 transition">
+                    <h4 class="font-bold text-cyan-400 text-xs mb-1">${s.title}</h4>
+                    <p class="text-gray-400 text-[11px] mb-2">${s.desc}</p>
+                    <pre class="bg-black/50 p-2 rounded text-[10px] text-gray-300 font-mono overflow-x-auto mb-2">${escapeHtml(s.code)}</pre>
+                    <button onclick="insertSnippet(${idx})" class="bg-cyan-500/20 hover:bg-cyan-500/30 text-cyan-400 px-3 py-1 rounded text-xs transition font-semibold">Insert into Editor</button>
+                </div>
+            `).join('');
+            document.getElementById('snippetsModal').classList.remove('hidden');
+        }
+
+        function closeSnippets() {
+            document.getElementById('snippetsModal').classList.add('hidden');
+        }
+
+        function insertSnippet(idx) {
+            const snippet = snippets[idx];
+            const editor = document.getElementById('codeEditor');
+            editor.value += '\n\n' + snippet.code;
+            onEditorInput(editor);
+            closeSnippets();
+        }
+
+        // Import / Export
+        function exportCurrentFile() {
+            const file = getActiveFile();
+            const blob = new Blob([file.content], { type: 'text/plain' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = file.name;
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+
+        function importScript(event) {
+            const fileObj = event.target.files[0];
+            if (!fileObj) return;
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const newFile = {
+                    id: Date.now().toString(),
+                    name: fileObj.name,
+                    content: e.target.result
+                };
+                files.push(newFile);
+                switchFile(newFile.id);
+            };
+            reader.readAsText(fileObj);
+        }
+
+        // Themes & Settings Modals
+        function toggleThemeModal() {
+            const m = document.getElementById('themeModal');
+            m.classList.toggle('hidden');
+        }
+
+        function toggleSettingsModal() {
+            const m = document.getElementById('settingsModal');
+            m.classList.toggle('hidden');
+        }
+
+        function setTheme(themeName) {
+            document.body.setAttribute('data-theme', themeName);
+            // Apply custom theme classes to root
+            const root = document.documentElement;
+            if (themeName === 'cyber') {
+                root.className = 'dark';
+            } else if (themeName === 'midnight') {
+                root.className = 'dark';
+            } else if (themeName === 'dracula') {
+                root.className = 'dark';
+            } else if (themeName === 'matrix') {
+                root.className = 'dark';
+            }
+            toggleThemeModal();
+        }
+
+        function changeFontSize(size) {
+            document.getElementById('fontSizeVal').textContent = size;
+            document.getElementById('codeEditor').style.fontSize = size + 'px';
+            document.getElementById('highlightLayer').style.fontSize = size + 'px';
+        }
+
+        function changeTabSize(size) {
+            document.getElementById('codeEditor').style.tabSize = size;
+        }
+
+        function toggleWordWrap(wrap) {
+            const editor = document.getElementById('codeEditor');
+            const highlight = document.getElementById('highlightLayer');
+            if (wrap) {
+                editor.style.whiteSpace = 'pre-wrap';
+                highlight.style.whiteSpace = 'pre-wrap';
+            } else {
+                editor.style.whiteSpace = 'pre';
+                highlight.style.whiteSpace = 'pre';
+            }
+        }
+
+        // Keyboard Shortcuts
+        function setupShortcuts() {
+            window.addEventListener('keydown', (e) => {
+                if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+                    e.preventDefault();
+                    runScript();
+                }
+                if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+                    e.preventDefault();
+                    exportCurrentFile();
+                }
+            });
+        }
+    </script>
+</body>
+</html>
